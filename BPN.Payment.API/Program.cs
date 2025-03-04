@@ -1,4 +1,5 @@
 ﻿using BPN.Payment.API.Data;
+using BPN.Payment.API.Middleware;
 using BPN.Payment.API.Services.BalanceManagementService;
 using BPN.Payment.API.Services.OrderService;
 using BPN.Payment.API.Services.ProductService;
@@ -14,7 +15,6 @@ var connectionString = builder.Configuration.GetConnectionString("PostgresConnec
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// 3️⃣ Register Services with Dependency Injection
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddHttpClient<IBalanceManagementService, BalanceManagementService>();
@@ -24,6 +24,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

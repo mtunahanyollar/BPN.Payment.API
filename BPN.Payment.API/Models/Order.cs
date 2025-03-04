@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BPN.Payment.API.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace BPN.Payment.API.Models
 {
@@ -14,6 +15,9 @@ namespace BPN.Payment.API.Models
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
 
         public decimal TotalPrice => Items.Sum(i => i.Quantity * i.Price);
+
+        [Required]
+        public OrderStatus Status { get; set; } = OrderStatus.PendingPayment;
     }
 
     public class OrderItem
