@@ -4,6 +4,7 @@ namespace BPN.Payment.API.Models
 {
     public class Order
     {
+        [Key]
         public int Id { get; set; }
 
         [Required]
@@ -17,9 +18,13 @@ namespace BPN.Payment.API.Models
 
     public class OrderItem
     {
+        [Key]
         public int Id { get; set; }
+        [Required]
         public int ProductId { get; set; }
+        [Required]
         public int Quantity { get; set; }
+        [Required]
         public decimal Price { get; set; }
     }
 }

@@ -3,11 +3,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BPN.Payment.API.Data
 {
-    public class ApplicationDbContext : DbContext
+    public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
-
         public DbSet<Product> Products { get; set; }
         public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+
     }
 }
