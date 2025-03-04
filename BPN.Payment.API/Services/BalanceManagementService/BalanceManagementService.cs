@@ -1,6 +1,8 @@
 ﻿
 using System.Text.Json;
 using System.Text;
+using Polly.Extensions.Http;
+using Polly;
 
 namespace BPN.Payment.API.Services.BalanceManagementService
 {
@@ -14,63 +16,47 @@ namespace BPN.Payment.API.Services.BalanceManagementService
         {
             _httpClient = httpClient;
             _logger = logger;
-            _balanceApiBaseUrl = configuration["BalanceManagement:ApiBaseUrl"] ?? throw new ArgumentNullException("Balance Management API URL is missing in configuration.");
+            _balanceApiBaseUrl = configuration["BalanceManagement:ApiBaseUrl"] ?? throw new ArgumentNullException("Balance Management API URL is missing.");
         }
 
         public async Task<bool> ReserveFunds(int orderId, decimal amount)
         {
-            //#comeback -> create a specific model for this.
-            var requestData = new
-            {
-                orderId = orderId,
-                amount = amount
-            };
+            var requestData = new { orderId, amount };
             var jsonContent = new StringContent(JsonSerializer.Serialize(requestData), Encoding.UTF8, "application/json");
 
-            try
+            return await ExecuteWithRetry(async () =>
             {
-                //#comeback -> get rid of hardcoded endpoints.....
                 var response = await _httpClient.PostAsync($"{_balanceApiBaseUrl}/api/balance/preorder", jsonContent);
-                if (response.IsSuccessStatusCode)
-                {
-                    return true;
-                }
-                _logger.LogError($"Failed to reserve funds. Response: {await response.Content.ReadAsStringAsync()}");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error reserving funds: {ex.Message}");
-                return false;
-            }
+                return response.IsSuccessStatusCode;
+            });
         }
 
         public async Task<bool> FinalizePayment(int orderId, decimal amount)
         {
-            //#comeback -> create a specific model for this.
-            var requestData = new
-            {
-                orderId = orderId,
-                amount = amount
-            };
+            var requestData = new { orderId, amount };
             var jsonContent = new StringContent(JsonSerializer.Serialize(requestData), Encoding.UTF8, "application/json");
 
-            try
+            return await ExecuteWithRetry(async () =>
             {
-                //#comeback -> get rid of hardcoded endpoints.....
                 var response = await _httpClient.PostAsync($"{_balanceApiBaseUrl}/api/balance/complete", jsonContent);
-                if (response.IsSuccessStatusCode)
-                {
-                    return true;
-                }
-                _logger.LogError($"Failed to finalize payment. Response: {await response.Content.ReadAsStringAsync()}");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error finalizing payment: {ex.Message}");
-                return false;
-            }
+                return response.IsSuccessStatusCode;
+            });
+        }
+
+        //#CB -> Make this another service...
+        private async Task<bool> ExecuteWithRetry(Func<Task<bool>> action)
+        {
+            var retryPolicy = Policy
+         .Handle<Exception>() // Handles transient failures
+         .WaitAndRetryAsync(
+             3, // Number of retries
+             retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential backoff
+             (exception, timeSpan, retryCount, context) =>
+             {
+                 _logger.LogError($"Retry {retryCount} for Balance Management API. Waiting {timeSpan.Seconds} seconds before next attempt. Exception: {exception.Message}");
+             });
+
+            return await retryPolicy.ExecuteAsync(async () => await action());
         }
     }
 }
