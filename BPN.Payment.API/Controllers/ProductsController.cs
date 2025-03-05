@@ -1,6 +1,7 @@
 ﻿using BPN.Payment.API.Data;
 using BPN.Payment.API.Models;
 using BPN.Payment.API.Services.ProductService;
+using BPN.Payment.API.Utils.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,10 +19,11 @@ namespace BPN.Payment.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        public async Task<ActionResult<PaginatedResult<Product>>> GetProducts(
+      [FromQuery] int page = 1, [FromQuery] int size = 10)
         {
-            var products = await _productService.GetAllProductsAsync();
-            return Ok(products);
+            var result = await _productService.GetProductsAsync(page, size);
+            return Ok(result);
         }
     }
 }
