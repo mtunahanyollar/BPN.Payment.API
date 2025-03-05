@@ -19,12 +19,17 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddHttpClient<IBalanceManagementService, BalanceManagementService>();
 
+//Cache
+builder.Services.AddMemoryCache(); 
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+//gzip
+builder.Services.AddResponseCompression();
 var app = builder.Build();
-
+app.UseResponseCompression();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.

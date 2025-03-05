@@ -17,6 +17,7 @@ namespace BPN.Payment.API.Models
         public decimal TotalPrice => Items.Sum(i => i.Quantity * i.Price);
 
         [Required]
+        [EnumDataType(typeof(OrderStatus))]
         public OrderStatus Status { get; set; } = OrderStatus.PendingPayment;
     }
 
