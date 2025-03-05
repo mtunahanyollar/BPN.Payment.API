@@ -1,8 +1,8 @@
-﻿using BPN.Payment.API.Exceptions;
+﻿using BPN.Payment.API.Utils.Exceptions;
 using System.Net;
 using System.Text.Json;
 
-namespace BPN.Payment.API.Middleware
+namespace BPN.Payment.API.Utils.Middleware
 {
     public class ExceptionHandlingMiddleware
     {

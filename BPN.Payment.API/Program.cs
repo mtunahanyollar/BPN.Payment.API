@@ -1,8 +1,8 @@
 ﻿using BPN.Payment.API.Data;
-using BPN.Payment.API.Middleware;
 using BPN.Payment.API.Services.BalanceManagementService;
 using BPN.Payment.API.Services.OrderService;
 using BPN.Payment.API.Services.ProductService;
+using BPN.Payment.API.Utils.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 

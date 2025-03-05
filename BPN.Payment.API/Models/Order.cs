@@ -1,4 +1,4 @@
-﻿using BPN.Payment.API.Enums;
+﻿using BPN.Payment.API.Utils.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace BPN.Payment.API.Models

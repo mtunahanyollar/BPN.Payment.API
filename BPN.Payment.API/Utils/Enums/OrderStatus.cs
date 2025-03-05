@@ -1,4 +1,4 @@
-﻿namespace BPN.Payment.API.Enums
+﻿namespace BPN.Payment.API.Utils.Enums
 {
     public enum OrderStatus
     {

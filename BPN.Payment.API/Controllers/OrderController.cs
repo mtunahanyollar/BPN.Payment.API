@@ -1,7 +1,7 @@
 ﻿using BPN.Payment.API.Data;
-using BPN.Payment.API.Exceptions;
 using BPN.Payment.API.Models;
 using BPN.Payment.API.Services.OrderService;
+using BPN.Payment.API.Utils.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,16 +21,13 @@ namespace BPN.Payment.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>
-        /// Creates a new order.
-        /// </summary>
         [HttpPost("create")]
         public async Task<ActionResult<Order>> CreateOrder([FromBody] Order order)
         {
             try
             {
                 var createdOrder = await _orderService.CreateOrderAsync(order);
-                return CreatedAtAction(nameof(GetOrderById), new { id = createdOrder.Id }, createdOrder);
+                return CreatedAtAction(nameof(CreateOrder), new { id = createdOrder.Id }, createdOrder);
             }
             catch (ProductNotFoundException ex)
             {
@@ -49,9 +46,6 @@ namespace BPN.Payment.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Completes an order and finalizes payment.
-        /// </summary>
         [HttpPost("{id}/complete")]
         public async Task<IActionResult> CompleteOrder(int id)
         {
@@ -81,31 +75,5 @@ namespace BPN.Payment.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Retrieves a specific order by ID.
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Order>> GetOrderById(int id)
-        {
-            try
-            {
-                var order = await _orderService.CreateOrderAsync(new Order { Id = id });
-                if (order == null)
-                {
-                    return NotFound(new { error = "Order not found." });
-                }
-                return Ok(order);
-            }
-            catch (OrderNotFoundException ex)
-            {
-                _logger.LogWarning($"Get Order Failed: {ex.Message}");
-                return NotFound(new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Unexpected Error: {ex.Message}");
-                return StatusCode(500, new { error = "Something went wrong. Please try again later." });
-            }
-        }
     }
 }
