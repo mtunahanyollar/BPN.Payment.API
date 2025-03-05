@@ -28,7 +28,6 @@ namespace BPN.Payment.API.Services.OrderService
                 throw new ArgumentException("Order must contain at least one item.");
             }
 
-            // Validate product availability
             var productIds = order.Items.Select(i => i.ProductId).ToList();
             var products = await _context.Products.Where(p => productIds.Contains(p.Id)).ToListAsync();
 
@@ -37,7 +36,7 @@ namespace BPN.Payment.API.Services.OrderService
                 throw new ProductNotFoundException(products.FirstOrDefault(p => !productIds.Contains(p.Id))?.Id ?? 0);
             }
 
-            // Assign correct product prices
+            // Assign product prices to the order
             foreach (var item in order.Items)
             {
                 var product = products.FirstOrDefault(p => p.Id == item.ProductId);
@@ -47,61 +46,74 @@ namespace BPN.Payment.API.Services.OrderService
                 }
             }
 
-            // Set default status
             order.Status = OrderStatus.PendingPayment;
 
-            // Begin transaction
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            using (var transaction = await _context.Database.BeginTransactionAsync()) // Start Transaction
             {
-                _context.Orders.Add(order);
-                await _context.SaveChangesAsync();
-
-                bool fundsReserved = await _balanceService.ReserveFunds(order.Id, order.TotalPrice);
-                if (!fundsReserved)
+                try
                 {
-                    throw new InsufficientBalanceException(order.TotalPrice);
+                    _context.Orders.Add(order);
+                    await _context.SaveChangesAsync();
+
+                    bool fundsReserved = await _balanceService.ReserveFunds(order.Id, order.TotalPrice);
+                    if (!fundsReserved)
+                    {
+                        throw new InsufficientBalanceException(order.TotalPrice);
+                    }
+
+                    order.Status = OrderStatus.PaymentReserved;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync(); // ✅ Commit if everything succeeds
                 }
-
-                order.Status = OrderStatus.PaymentReserved;
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error creating order: {ex.Message}");
-                await transaction.RollbackAsync();
-                throw;
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Transaction Failed: {ex.Message}");
+                    await transaction.RollbackAsync(); // ❌ Rollback everything if any step fails
+                    throw;
+                }
             }
 
             return order;
         }
-
         public async Task<bool> CompleteOrderAsync(int orderId)
         {
-            var order = await _context.Orders.FindAsync(orderId);
-            if (order == null)
+            using (var transaction = await _context.Database.BeginTransactionAsync()) // Start Transaction
             {
-                throw new OrderNotFoundException(orderId);
+                try
+                {
+                    var order = await _context.Orders.FindAsync(orderId);
+                    if (order == null)
+                    {
+                        throw new OrderNotFoundException(orderId);
+                    }
+
+                    if (order.Status != OrderStatus.PaymentReserved)
+                    {
+                        _logger.LogWarning($"Order ID {order.Id} is not in a valid state for payment completion.");
+                        return false;
+                    }
+
+                    bool paymentSuccess = await _balanceService.FinalizePayment(order.Id, order.TotalPrice);
+
+                    if (!paymentSuccess)
+                    {
+                        throw new PaymentFailedException(order.Id, order.TotalPrice);
+                    }
+
+                    order.Status = OrderStatus.PaymentCompleted;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync(); 
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Transaction Failed: {ex.Message}");
+                    await transaction.RollbackAsync(); 
+                    throw;
+                }
             }
-
-            if (order.Status != OrderStatus.PaymentReserved)
-            {
-                _logger.LogWarning($"Order ID {order.Id} is not in a valid state for payment completion.");
-                return false;
-            }
-
-            bool paymentSuccess = await _balanceService.FinalizePayment(order.Id, order.TotalPrice);
-
-            if (!paymentSuccess)
-            {
-                throw new PaymentFailedException(order.Id, order.TotalPrice);
-            }
-
-            order.Status = OrderStatus.PaymentCompleted;
-            await _context.SaveChangesAsync();
-            return true;
         }
     }
 }
