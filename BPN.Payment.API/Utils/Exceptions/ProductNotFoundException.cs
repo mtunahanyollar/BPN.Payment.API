@@ -1,4 +1,4 @@
-﻿namespace BPN.Payment.API.Exceptions
+﻿namespace BPN.Payment.API.Utils.Exceptions
 {
     public class ProductNotFoundException : Exception
     {

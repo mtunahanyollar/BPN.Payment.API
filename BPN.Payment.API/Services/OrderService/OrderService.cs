@@ -1,10 +1,11 @@
 ﻿using BPN.Payment.API.Data;
-using BPN.Payment.API.Enums;
-using BPN.Payment.API.Exceptions;
 using BPN.Payment.API.Models;
 using BPN.Payment.API.Services.BalanceManagementService;
+using BPN.Payment.API.Utils.Enums;
+using BPN.Payment.API.Utils.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BPN.Payment.API.Services.OrderService
 {
@@ -48,28 +49,29 @@ namespace BPN.Payment.API.Services.OrderService
 
             order.Status = OrderStatus.PendingPayment;
 
-            using (var transaction = await _context.Database.BeginTransactionAsync()) // Start Transaction
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     _context.Orders.Add(order);
                     await _context.SaveChangesAsync();
 
-                    bool fundsReserved = await _balanceService.ReserveFunds(order.Id, order.TotalPrice);
-                    if (!fundsReserved)
+                    var reserveResponse = await _balanceService.ReserveFunds(order.Id, order.TotalPrice);
+                    if (!reserveResponse.Success)
                     {
-                        throw new InsufficientBalanceException(order.TotalPrice);
+                        _logger.LogWarning($"Failed to reserve funds for Order ID {order.Id}: {reserveResponse.Message}");
+                        throw new InsufficientBalanceException(order.TotalPrice, reserveResponse.Message); // might be change needed
                     }
 
                     order.Status = OrderStatus.PaymentReserved;
                     await _context.SaveChangesAsync();
 
-                    await transaction.CommitAsync(); // ✅ Commit if everything succeeds
+                    await transaction.CommitAsync();
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError($"Transaction Failed: {ex.Message}");
-                    await transaction.RollbackAsync(); // ❌ Rollback everything if any step fails
+                    await transaction.RollbackAsync(); 
                     throw;
                 }
             }
@@ -78,7 +80,7 @@ namespace BPN.Payment.API.Services.OrderService
         }
         public async Task<bool> CompleteOrderAsync(int orderId)
         {
-            using (var transaction = await _context.Database.BeginTransactionAsync()) // Start Transaction
+            using (var transaction = await _context.Database.BeginTransactionAsync()) 
             {
                 try
                 {
@@ -94,11 +96,15 @@ namespace BPN.Payment.API.Services.OrderService
                         return false;
                     }
 
-                    bool paymentSuccess = await _balanceService.FinalizePayment(order.Id, order.TotalPrice);
-
-                    if (!paymentSuccess)
+                    var paymentResponse = await _balanceService.FinalizePayment(order.Id, order.TotalPrice);
+                    if (!paymentResponse.Success)
                     {
-                        throw new PaymentFailedException(order.Id, order.TotalPrice);
+                        _logger.LogWarning($"Payment failed for Order ID {order.Id}: {paymentResponse.Message}");
+
+                        // 🔄 Rollback funds because payment failed
+                        await _balanceService.RollbackFunds(order.Id, order.TotalPrice);
+
+                        throw new PaymentFailedException(order.Id, order.TotalPrice, paymentResponse.Message);
                     }
 
                     order.Status = OrderStatus.PaymentCompleted;
@@ -110,10 +116,12 @@ namespace BPN.Payment.API.Services.OrderService
                 catch (Exception ex)
                 {
                     _logger.LogError($"Transaction Failed: {ex.Message}");
-                    await transaction.RollbackAsync(); 
+                    await transaction.RollbackAsync();
                     throw;
                 }
             }
         }
+
+
     }
 }
