@@ -7,14 +7,73 @@ using BPN.Payment.API.Utils.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+#region CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder => builder
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
+#endregion
+#region Swagger-Settings:
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "BPN Payment API", Version = "v1" });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter your JWT token in the format: Bearer {your_token}"
+    });
+
+    // 🔥 Add OAuth2 Login to Swagger
+    //options.AddSecurityDefinition("OAuth2", new OpenApiSecurityScheme
+    //{
+    //    Type = SecuritySchemeType.OAuth2,
+    //    Flows = new OpenApiOAuthFlows
+    //    {
+    //        Password = new OpenApiOAuthFlow
+    //        {
+    //            TokenUrl = new Uri("http://localhost:5181/api/auth/linkedin/login"),
+    //            Scopes = new Dictionary<string, string>
+    //            {
+    //                { "read", "Read access" },
+    //                { "write", "Write access" }
+    //            }
+    //        }
+    //    }
+    //});
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+});
+
+#endregion
 
 #region Auth
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-
-// ✅ Add Authentication
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -46,15 +105,6 @@ builder.Services.AddHttpClient<IBalanceManagementService, BalanceManagementServi
 
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        builder => builder
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader());
-});
-
 //Cache
 builder.Services.AddMemoryCache();
 
@@ -72,7 +122,7 @@ builder.Services.AddLogging(logging =>
 builder.Services.AddResponseCompression();
 var app = builder.Build();
 app.UseResponseCompression();
-app.UseCors("AllowAll"); 
+app.UseCors("AllowAll");
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 

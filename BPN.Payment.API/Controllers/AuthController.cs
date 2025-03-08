@@ -23,9 +23,6 @@ public class AuthController : ControllerBase
         _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
     }
 
-    /// <summary>
-    /// Kullanıcıyı LinkedIn OpenID Connect giriş ekranına yönlendirir.
-    /// </summary>
     [HttpGet("linkedin/login")]
     public IActionResult LinkedInLogin()
     {
@@ -39,9 +36,6 @@ public class AuthController : ControllerBase
         return Redirect(linkedInAuthUrl);
     }
 
-    /// <summary>
-    /// LinkedIn Callback - Kullanıcı başarılı giriş yaptıktan sonra bu URL'e yönlendirilir.
-    /// </summary>
     [HttpGet("linkedin/callback")]
     public async Task<IActionResult> LinkedInCallback([FromQuery] string code, [FromQuery] string state)
     {
@@ -75,14 +69,12 @@ public class AuthController : ControllerBase
             Console.WriteLine($"✅ Access Token: {tokenData.AccessToken}");
             Console.WriteLine($"✅ ID Token: {tokenData.IdToken}");
 
-            // LinkedIn'den ID Token al ve parse et
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(tokenData.IdToken);
 
             var email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value;
             var name = jwtToken.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
 
-            // Kullanıcıya kendi JWT Token'ımızı döndür
             var jwt = _tokenService.GenerateToken(email, "User");
 
             return Ok(new { token = jwt });
