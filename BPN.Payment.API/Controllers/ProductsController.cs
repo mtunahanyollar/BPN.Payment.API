@@ -2,11 +2,13 @@
 using BPN.Payment.API.Models;
 using BPN.Payment.API.Services.ProductService;
 using BPN.Payment.API.Utils.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace BPN.Payment.API.Controllers
 {
+    [Authorize]
     [Route("api/products")]
     [ApiController]
     public class ProductsController : ControllerBase
