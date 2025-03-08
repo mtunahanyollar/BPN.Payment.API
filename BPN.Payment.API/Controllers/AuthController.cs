@@ -62,12 +62,12 @@ public class AuthController : ControllerBase
 
             if (tokenData == null || string.IsNullOrEmpty(tokenData.AccessToken))
             {
-                Console.WriteLine("❌ Deserialization failed! The object is null.");
+                Console.WriteLine("Deserialization failed! The object is null.");
                 return BadRequest("Failed to retrieve access token from LinkedIn.");
             }
 
-            Console.WriteLine($"✅ Access Token: {tokenData.AccessToken}");
-            Console.WriteLine($"✅ ID Token: {tokenData.IdToken}");
+            Console.WriteLine($"Access Token: {tokenData.AccessToken}");
+            Console.WriteLine($"ID Token: {tokenData.IdToken}");
 
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(tokenData.IdToken);
