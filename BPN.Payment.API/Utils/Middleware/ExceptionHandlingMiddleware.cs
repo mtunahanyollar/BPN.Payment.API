@@ -38,7 +38,7 @@ namespace BPN.Payment.API.Utils.Middleware
                 case ProductNotFoundException:
                 case OrderNotFoundException:
                     statusCode = HttpStatusCode.NotFound;
-                    errorMessage = exception.Message; // Specific error message
+                    errorMessage = exception.Message;
                     break;
 
                 case PaymentFailedException:

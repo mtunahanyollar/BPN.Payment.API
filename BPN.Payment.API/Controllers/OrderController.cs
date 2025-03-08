@@ -2,12 +2,13 @@
 using BPN.Payment.API.Models;
 using BPN.Payment.API.Services.OrderService;
 using BPN.Payment.API.Utils.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace BPN.Payment.API.Controllers
 {
-
+    [Authorize]
     [Route("api/orders")]
     [ApiController]
     public class OrdersController : ControllerBase
