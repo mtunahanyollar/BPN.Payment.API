@@ -1,11 +1,13 @@
 ﻿using BPN.Payment.API.Utils.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BPN.Payment.API.Models
 {
     public class Order
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [Required]
@@ -24,6 +26,7 @@ namespace BPN.Payment.API.Models
     public class OrderItem
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
         [Required]
         public int ProductId { get; set; }

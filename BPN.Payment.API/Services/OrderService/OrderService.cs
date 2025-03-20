@@ -121,7 +121,5 @@ namespace BPN.Payment.API.Services.OrderService
                 }
             }
         }
-
-
     }
 }

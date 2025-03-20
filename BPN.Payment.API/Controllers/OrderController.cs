@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BPN.Payment.API.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [Route("api/orders")]
     [ApiController]
     public class OrdersController : ControllerBase
@@ -75,6 +75,5 @@ namespace BPN.Payment.API.Controllers
                 return StatusCode(500, new { error = "Something went wrong. Please try again later." });
             }
         }
-
     }
 }
